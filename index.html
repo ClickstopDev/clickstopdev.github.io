@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Inventory Stock-up ROI Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f1f5f9;padding:20px 16px;color:#0f172a;min-height:100vh}
+h1{font-size:20px;font-weight:800}
+h2{font-size:14px;font-weight:600;color:#1e293b}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.box{background:#fff;border-radius:14px;box-shadow:0 1px 5px rgba(0,0,0,.08);padding:18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.span2{grid-column:span 2}
+label.lbl{font-size:13px;color:#475569;font-weight:600;display:block;margin-bottom:5px}
+.sub{font-size:11px;color:#94a3b8}
+.row{display:flex;align-items:center;gap:8px}
+input[type=range]{width:100%;accent-color:#4338ca}
+.ni{border:1.5px solid #c7d2fe;border-radius:8px;padding:6px 10px;font-size:14px;font-weight:700;color:#4338ca;outline:none;width:80px}
+.ni:focus{border-color:#4338ca}
+.slider-hdr{display:flex;justify-content:space-between;margin-bottom:3px}
+.slider-lbl{font-size:13px;color:#475569;font-weight:600}
+.slider-val{font-size:13px;font-weight:700;color:#4338ca}
+.slider-ends{display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-top:2px}
+/* Cards */
+.cards6{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:8px}
+.cards2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.card{border-radius:12px;padding:13px 11px;color:#fff}
+.card .c-lbl{font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;margin-bottom:4px}
+.card .c-val{font-size:17px;font-weight:800;line-height:1.2}
+.card .c-sub{font-size:10px;opacity:.75;margin-top:4px;line-height:1.3}
+.ann-badge{position:absolute;top:8px;right:10px;font-size:9px;background:rgba(255,255,255,.2);border-radius:4px;padding:1px 6px;font-weight:700;letter-spacing:.03em}
+.divider{display:flex;align-items:center;gap:8px;margin:6px 0}
+.divider-line{height:1px;flex:1;background:#e2e8f0}
+.divider-txt{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+/* Growth cards */
+.scen-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.scen-card{border-radius:14px;padding:16px 14px;color:#fff}
+.scen-title{font-size:11px;font-weight:700;text-transform:uppercase;opacity:.8;margin-bottom:12px}
+.scen-section-lbl{font-size:9px;opacity:.7;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.scen-nums{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.scen-num-lbl{font-size:9px;opacity:.75;margin-bottom:2px}
+.scen-num-val{font-size:22px;font-weight:900}
+.scen-ann{background:rgba(255,255,255,.12);border-radius:8px;padding:10px;margin-bottom:10px}
+.scen-ann-caveat{font-size:10px;opacity:.65;margin-top:6px;font-style:italic;line-height:1.3}
+.toggle-btn{width:100%;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:7px;padding:6px 10px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.toggle-btn:hover{background:rgba(255,255,255,.22)}
+.details-grid{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px 8px}
+.detail-item{background:rgba(255,255,255,.12);border-radius:6px;padding:5px 7px}
+.detail-lbl{font-size:9px;opacity:.75;margin-bottom:1px}
+.detail-val{font-size:12px;font-weight:700}
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:8px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;white-space:nowrap;background:#f8fafc;border-bottom:1px solid #e2e8f0}
+th.r,td.r{text-align:right}
+td{padding:7px 10px;border-top:1px solid #f1f5f9}
+.buf-row{background:#fffbeb}
+.alt-row{background:#f8fafc}
+tfoot td{font-weight:700;background:#f1f5f9;border-top:2px solid #e2e8f0}
+.badge{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px}
+/* Misc */
+.section-lbl{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.eff-marg-box{background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-bottom:14px;font-size:12px;color:#92400e}
+.buf-box{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px;grid-column:span 2}
+.green-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px;grid-column:span 2}
+.math-note{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:11px;color:#92400e;line-height:1.6}
+.notes-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px}
+.note-item{display:flex;gap:10px;align-items:flex-start;background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #e2e8f0;margin-top:8px}
+.note-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.note-text{font-size:12px;color:#475569;line-height:1.6}
+.pat-btn{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid #e2e8f0;background:#fff;color:#475569;transition:all .15s}
+.pat-btn.active{border:2px solid #4338ca;background:#4338ca;color:#fff}
+.print-btn{display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:1.5px solid #c7d2fe;background:#fff;color:#4338ca;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.print-btn:hover{background:#eef2ff}
+.master-toggle{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e2e8f0;background:#fff;color:#475569;display:flex;align-items:center;gap:6px}
+.master-toggle:hover{background:#f8fafc}
+.master-row{display:flex;justify-content:flex-end;margin-bottom:8px}
+.price-note{margin:6px 0 0;font-size:11px;color:#92400e;line-height:1.4;font-style:italic}
+@media print{.print-btn,.master-toggle,.toggle-btn{display:none!important}body{background:#fff;padding:0}.box{box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+    <div>
+      <h1>📦 Inventory Stock-up ROI Calculator</h1>
+      <p style="font-size:12px;color:#64748b;margin-top:3px">Model the ROI of stocking up ahead of a price increase: LOC costs, margin-adjusted paydown, gross profit impact, and growth upside.</p>
+    </div>
+    <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  </div>
+
+  <!-- Inputs -->
+  <div class="box grid2">
+
+    <!-- Total Cost -->
+    <div>
+      <div class="slider-hdr"><span class="slider-lbl">Total Inventory Cost</span><span class="slider-val" id="costLbl">$500K</span></div>
+      <input type="range" id="cost" min="0" max="2000000" step="10000" value="500000" oninput="update()">
+      <div class="slider-ends"><span>$0</span><span>$2M</span></div>
+    </div>
+
+    <!-- Price Increase -->
+    <div>
+      <div class="slider-hdr"><span class="slider-lbl">Vendor Price Increase</span><span class="slider-val" id="pIncLbl">8.0%</span></div>
+      <input type="range" id="pInc" min="0" max="30" step="0.5" value="8" oninput="update()">
+      <div class="slider-ends"><span>0%</span><span>30%</span></div>
+    </div>
+
+    <!-- LOC Rate -->
+    <div>
+      <label class="lbl">LOC Annual Rate (%)</label>
+      <div class="row">
+        <input class="ni" type="number" id="locRate" min="0" max="30" step="0.01" value="6.05" oninput="update()">
+        <span class="sub" id="locMonthly">Monthly: 0.504%</span>
+      </div>
+    </div>
+
+    <!-- Cash Financed -->
+    <div>
+      <label class="lbl">Cash-Financed Portion (%)</label>
+      <div class="row">
+        <input class="ni" type="number" id="cashPct" min="0" max="100" step="1" value="33" oninput="syncCashSlider();update()" style="width:70px">
+        <span class="sub" id="locPctLbl">LOC: 67%</span>
+      </div>
+      <input type="range" id="cashSlider" min="0" max="100" step="1" value="33" oninput="syncCashInput();update()" style="margin-top:7px">
+    </div>
+
+    <!-- Months Buying -->
+    <div>
+      <div class="slider-hdr"><span class="slider-lbl">Months of Inventory You're Buying</span><span class="slider-val" id="mosLbl">6 mo</span></div>
+      <input type="range" id="mos" min="1" max="24" step="1" value="6" oninput="update()">
+      <div class="slider-ends"><span>1 mo</span><span>24 mo</span></div>
+    </div>
+
+    <!-- Bulk Discount -->
+    <div>
+      <div class="slider-hdr"><span class="slider-lbl">Bulk Order Discount</span><span class="slider-val" id="bulkLbl">5.0%</span></div>
+      <input type="range" id="bulk" min="0" max="30" step="0.5" value="5" oninput="update()">
+      <div class="slider-ends"><span>0%</span><span>30%</span></div>
+    </div>
+
+    <!-- Months on Hand -->
+    <div class="buf-box">
+      <div class="row" style="align-items:flex-start;gap:16px;flex-wrap:wrap">
+        <div>
+          <label class="lbl" style="color:#92400e">Months of Current Inventory on Hand</label>
+          <div class="row">
+            <input class="ni" type="number" id="moH" min="0" max="18" step="1" value="0" oninput="syncMoHSlider();update()" style="width:65px;color:#92400e;border-color:#fde68a">
+            <span class="sub" style="color:#b45309">months currently in stock</span>
+          </div>
+          <input type="range" id="moHSlider" min="0" max="18" step="1" value="0" oninput="syncMoHInput();update()" style="width:220px;margin-top:7px;accent-color:#d97706">
+        </div>
+        <div style="flex:1;min-width:200px;font-size:12px;color:#78350f;line-height:1.5">
+          📊 <strong>How these work together:</strong> New inventory sits behind your existing stock — the LOC won't start paying down until current inventory sells through first.
+          <span id="bufNote"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pattern -->
+    <div class="span2">
+      <label class="lbl">Sell-Through Pattern</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="patBtns">
+        <button class="pat-btn active" onclick="setPat('linear',this)">📊 Linear</button>
+        <button class="pat-btn" onclick="setPat('front',this)">📈 Front-Loaded</button>
+        <button class="pat-btn" onclick="setPat('back',this)">📉 Back-Loaded</button>
+        <button class="pat-btn" onclick="setPat('scurve',this)">〰️ S-Curve</button>
+      </div>
+    </div>
+
+    <!-- Growth & Margin -->
+    <div class="green-box">
+      <label class="lbl" style="color:#166534;font-size:14px;margin-bottom:10px">📈 Revenue Growth & Margin Assumptions</label>
+      <div class="eff-marg-box" id="effMargBox">Effective Margin on Buy-In Units: —</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+        <div>
+          <label class="lbl" style="font-size:12px">Avg Monthly Sales<br><span style="font-weight:400;color:#94a3b8">(12-mo baseline)</span></label>
+          <div class="row">
+            <span style="font-weight:600;color:#475569">$</span>
+            <input class="ni" type="number" id="baseSal" min="0" step="1000" value="50000" oninput="update()" style="width:110px;color:#166534;border-color:#86efac">
+          </div>
+        </div>
+        <div>
+          <label class="lbl" style="font-size:12px">Low Growth %<br><span class="sub" id="loLiftLbl">+$0/mo</span></label>
+          <div class="row">
+            <input class="ni" type="number" id="gLo" min="0" max="200" step="0.5" value="5" oninput="update()" style="color:#0284c7;border-color:#bae6fd;width:70px">
+            <span class="sub">%</span>
+          </div>
+        </div>
+        <div>
+          <label class="lbl" style="font-size:12px">Med Growth %<br><span class="sub" id="medLiftLbl">+$0/mo</span></label>
+          <div class="row">
+            <input class="ni" type="number" id="gMed" min="0" max="200" step="0.5" value="15" oninput="update()" style="color:#7c3aed;border-color:#ddd6fe;width:70px">
+            <span class="sub">%</span>
+          </div>
+        </div>
+        <div>
+          <label class="lbl" style="font-size:12px">High Growth %<br><span class="sub" id="hiLiftLbl">+$0/mo</span></label>
+          <div class="row">
+            <input class="ni" type="number" id="gHi" min="0" max="200" step="0.5" value="30" oninput="update()" style="color:#059669;border-color:#86efac;width:70px">
+            <span class="sub">%</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div>
+          <label class="lbl" style="font-size:12px">Base Category Gross Margin (%)<br><span style="font-weight:400;color:#94a3b8">current avg for this category</span></label>
+          <div class="row">
+            <input class="ni" type="number" id="marg" min="0" max="100" step="0.5" value="40" oninput="update()" style="color:#475569;border-color:#cbd5e1">
+            <span class="sub">%</span>
+          </div>
+        </div>
+        <div>
+          <label class="lbl" style="font-size:12px">Optional: Price Increase (%)<br><span style="font-weight:400;color:#94a3b8">0 = no price change</span></label>
+          <div class="row">
+            <input class="ni" type="number" id="prInc" min="0" max="50" step="0.5" value="0" oninput="update()" style="color:#b45309;border-color:#fde68a">
+            <span class="sub">%</span>
+          </div>
+          <p class="price-note">Price increase is optional and added to illustrate the impact of a price increase. This is not specifically relevant to the stock-up decision making process due to the fact that we can raise prices without stocking up.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end inputs -->
+
+  <!-- Baseline Metrics -->
+  <div>
+    <p class="section-lbl">Baseline — no growth · gross profit basis</p>
+    <div class="cards6" id="baseCards"></div>
+    <div class="divider">
+      <div class="divider-line"></div>
+      <span class="divider-txt" id="annDividerTxt">↕ Annualized (÷ ? mo × 12)</span>
+      <div class="divider-line"></div>
+    </div>
+    <div class="cards2" id="annCards"></div>
+  </div>
+
+  <!-- Growth Scenarios -->
+  <div>
+    <p class="section-lbl" id="scenLbl">Growth Scenarios — ? month horizon · gross profit basis</p>
+    <div class="master-row">
+      <button class="master-toggle" id="masterToggle" onclick="toggleAll()">▼ Show details for all scenarios</button>
+    </div>
+    <div class="scen-grid" id="scenCards"></div>
+  </div>
+
+  <!-- Chart -->
+  <div class="box">
+    <h2 style="margin-bottom:4px">LOC Balance: Base vs Growth Scenarios</h2>
+    <p style="font-size:12px;color:#94a3b8;margin-bottom:14px">Higher growth = more monthly COGS paydown = faster LOC payoff = less interest</p>
+    <canvas id="roiChart" height="80"></canvas>
+  </div>
+
+  <!-- Paydown Table -->
+  <div class="box" style="padding:0;overflow:hidden">
+    <div style="padding:12px 18px;border-bottom:1px solid #f1f5f9">
+      <h2>Monthly LOC Paydown Schedule — Base (no growth)</h2>
+      <span class="sub" id="tblNote"></span>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Month</th><th>Phase</th>
+            <th class="r">Inv. Sold (COGS)</th>
+            <th class="r">Opening Bal.</th>
+            <th class="r">Interest</th>
+            <th class="r">Paydown</th>
+            <th class="r">Closing Bal.</th>
+            <th class="r">Cum. Interest</th>
+            <th class="r">Cum. Net Benefit</th>
+          </tr>
+        </thead>
+        <tbody id="tBody"></tbody>
+        <tfoot id="tFoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Math Note -->
+  <div class="math-note">
+    <strong>How the math works:</strong><br>
+    <strong>Effective Margin</strong> = 1 − (1 − Bulk%) × (1 − Base Margin%) ÷ (1 + Price Inc%)<br>
+    <strong>Price Increase &amp; Growth revenue</strong> are converted to gross profit using Base Category Margin % before being added to net benefit<br>
+    <strong>Net Benefit</strong> = Price Savings + Bulk Savings + Price Inc GP + Growth GP − LOC Interest<br>
+    <strong>Annualized</strong> = Net Benefit ÷ Total Months × 12 · costs and savings are fully incurred regardless of horizon
+  </div>
+
+  <!-- Notes -->
+  <div class="notes-box">
+    <h2 style="display:flex;align-items:center;gap:7px">📋 Decision-Making Notes</h2>
+    <div class="note-item"><span class="note-icon">⚠️</span><span class="note-text">Inventory considered in excess of 12 months on hand at year-end gets taken out of our borrowing base. Keep this in mind as a variable in the decision making process.</span></div>
+    <div class="note-item"><span class="note-icon">🏭</span><span class="note-text">Consider the impact to warehouse space.</span></div>
+    <div class="note-item"><span class="note-icon">📦</span><span class="note-text">Holding cost is not included in this calculation. It is a real cost, but nominal enough not to include in this analysis. Keep this in mind as an intangible variable or cost.</span></div>
+  </div>
+
+</div><!-- end wrap -->
+
+<script>
+const PI = Math.PI;
+let pat = 'linear';
+let expanded = [false, false, false];
+let roiChart = null;
+
+function syncCashSlider(){ document.getElementById('cashSlider').value = document.getElementById('cashPct').value; }
+function syncCashInput(){  document.getElementById('cashPct').value  = document.getElementById('cashSlider').value; }
+function syncMoHSlider(){  document.getElementById('moHSlider').value = document.getElementById('moH').value; }
+function syncMoHInput(){   document.getElementById('moH').value       = document.getElementById('moHSlider').value; }
+
+function setPat(p, btn) {
+  pat = p;
+  document.querySelectorAll('.pat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  update();
+}
+
+function toggleAll() {
+  const allOpen = expanded.every(v => v);
+  expanded = [!allOpen, !allOpen, !allOpen];
+  renderScenCards(window._lastR);
+  document.getElementById('masterToggle').textContent = (expanded.every(v=>v) ? '▲ Hide' : '▼ Show') + ' details for all scenarios';
+}
+
+function fmtS(v) {
+  const a = Math.abs(Math.round(v));
+  const s = a >= 1e6 ? (a/1e6).toFixed(2)+'M' : a >= 1000 ? (a/1000).toFixed(1)+'K' : a;
+  return (v < 0 ? '-$' : '$') + s;
+}
+function fmtT(v) {
+  return (v < 0 ? '-$' : '$') + Math.abs(Math.round(v)).toLocaleString();
+}
+
+function getWeights(n, p) {
+  const w = Array.from({length:n}, (_,i) =>
+    p==='linear' ? 1 : p==='front' ? n-i : p==='back' ? i+1 :
+    Math.max(0, Math.sin(PI*(i+0.5)/n))
+  );
+  const s = w.reduce((a,b)=>a+b, 0);
+  return w.map(v => v/s);
+}
+
+function simulate(cost, bulk, cashPct, locRate, sellMos, moH, gPct, baseSal, effMarg, prInc, marg) {
+  const eff      = cost * (1 - bulk/100);
+  const locInit  = eff  * (1 - cashPct/100);
+  const mr       = locRate/100/12;
+  const buf      = Math.round(moH);
+  const tot      = buf + sellMos;
+  const w        = getWeights(sellMos, pat);
+  const priceAdj = baseSal * (1 + prInc/100);
+  const mRevLift = priceAdj * gPct/100;
+  const mCOGS    = mRevLift * (1 - effMarg/100);
+  let bal = locInit, cumInt = 0;
+  const rows = [], cBal = [], cInt2 = [];
+  for (let i = 0; i < tot; i++) {
+    const isB = i < buf, op = bal, int = op * mr;
+    const baseSD = isB ? 0 : eff * w[i - buf];
+    const growSD = isB ? 0 : mCOGS;
+    const pd     = isB ? 0 : Math.min(baseSD + growSD, op + int);
+    const cl     = Math.max(0, op + int - pd);
+    cumInt += int; bal = cl;
+    rows.push({m:i+1, isB, baseSD, op, int, pd, cl, cumInt});
+    cBal.push(Math.round(cl));
+    cInt2.push(Math.round(cumInt));
+  }
+  return {rows, cBal, cInt2, cumInt, buf, tot, locInit, mRevLift, totalGrowthRev: mRevLift * tot};
+}
+
+function update() {
+  const cost    = +document.getElementById('cost').value;
+  const pInc    = +document.getElementById('pInc').value;
+  const locRate = +document.getElementById('locRate').value;
+  const cashPct = +document.getElementById('cashPct').value;
+  const mos     = Math.max(1, +document.getElementById('mos').value);
+  const bulk    = +document.getElementById('bulk').value;
+  const moH     = Math.max(0, +document.getElementById('moH').value);
+  const baseSal = +document.getElementById('baseSal').value;
+  const gLo     = +document.getElementById('gLo').value;
+  const gMed    = +document.getElementById('gMed').value;
+  const gHi     = +document.getElementById('gHi').value;
+  const marg    = +document.getElementById('marg').value;
+  const prInc   = +document.getElementById('prInc').value;
+
+  // Labels
+  document.getElementById('costLbl').textContent   = '$' + (cost/1000).toFixed(0) + 'K';
+  document.getElementById('pIncLbl').textContent   = pInc.toFixed(1) + '%';
+  document.getElementById('locMonthly').textContent = 'Monthly: ' + (locRate/12).toFixed(3) + '%';
+  document.getElementById('locPctLbl').textContent  = 'LOC: ' + (100-cashPct) + '%';
+  document.getElementById('mosLbl').textContent    = mos + ' mo';
+  document.getElementById('bulkLbl').textContent   = bulk.toFixed(1) + '%';
+
+  // Effective margin
+  const effMarg = (1 - (1 - bulk/100) * (1 - marg/100) / (1 + prInc/100)) * 100;
+  document.getElementById('effMargBox').innerHTML =
+    '<strong>Effective Margin on Buy-In Units: ' + effMarg.toFixed(1) + '%</strong>' +
+    (prInc > 0
+      ? ' (Base ' + marg + '% + ' + bulk + '% bulk lift + ' + prInc + '% price lift)'
+      : ' (Base ' + marg + '% + ' + bulk + '% bulk discount lift)');
+
+  // Growth lift labels
+  const priceAdj = baseSal * (1 + prInc/100);
+  document.getElementById('loLiftLbl').textContent  = '+' + fmtT(priceAdj * gLo/100)  + '/mo';
+  document.getElementById('medLiftLbl').textContent = '+' + fmtT(priceAdj * gMed/100) + '/mo';
+  document.getElementById('hiLiftLbl').textContent  = '+' + fmtT(priceAdj * gHi/100)  + '/mo';
+
+  // Core
+  const priceSav   = cost * pInc/100;
+  const bulkSav    = cost * bulk/100;
+  const base0      = simulate(cost, bulk, cashPct, locRate, mos, moH, 0, baseSal, effMarg, prInc, marg);
+  const totMos     = base0.tot;
+  const priceIncGP = baseSal * (prInc/100) * totMos * (marg/100);
+  const netBase    = priceSav + bulkSav + priceIncGP - base0.cumInt;
+  const roiBase    = cost > 0 ? netBase/cost*100 : 0;
+  const annNet     = totMos > 0 ? netBase/totMos*12 : 0;
+  const annRoi     = cost > 0 ? annNet/cost*100 : 0;
+
+  // Buffer note
+  const bufEl = document.getElementById('bufNote');
+  bufEl.innerHTML = moH > 0
+    ? '<br><strong>' + moH + ' mo on hand + ' + mos + ' mo buying = ' + totMos + ' total months on LOC.</strong>'
+    : '';
+
+  // Growth scenarios
+  const gDefs = [
+    {label:'Low Growth',  pct:gLo,  bg:'linear-gradient(135deg,#0284c7,#38bdf8)'},
+    {label:'Med Growth',  pct:gMed, bg:'linear-gradient(135deg,#7c3aed,#a78bfa)'},
+    {label:'High Growth', pct:gHi,  bg:'linear-gradient(135deg,#059669,#34d399)'},
+  ];
+  const scens = gDefs.map(g => {
+    const sim      = simulate(cost, bulk, cashPct, locRate, mos, moH, g.pct, baseSal, effMarg, prInc, marg);
+    const growthGP = sim.totalGrowthRev * (marg/100);
+    const intSaved = base0.cumInt - sim.cumInt;
+    const netG     = priceSav + bulkSav + priceIncGP + growthGP - sim.cumInt;
+    const roiG     = cost > 0 ? netG/cost*100 : 0;
+    const annNetG  = totMos > 0 ? netG/totMos*12 : 0;
+    const annRoiG  = cost > 0 ? annNetG/cost*100 : 0;
+    return {...g, sim, growthGP, intSaved, netG, roiG, annNetG, annRoiG};
+  });
+
+  const r = {priceSav, bulkSav, priceIncGP, effMarg, locInt:base0.cumInt,
+    netBase, roiBase, annNet, annRoi, rows:base0.rows,
+    cBal0:base0.cBal, cInt0:base0.cInt2, buf:base0.buf, tot:totMos,
+    locInit:base0.locInit, scens, cost, marg, mos};
+  window._lastR = r;
+
+  renderBaseCards(r);
+  renderAnnCards(r);
+  renderScenCards(r);
+  renderChart(r);
+  renderTable(r);
+  document.getElementById('annDividerTxt').textContent = '↕ Annualized (÷ ' + totMos + ' mo × 12)';
+  document.getElementById('scenLbl').textContent = 'Growth Scenarios — ' + totMos + ' month horizon · gross profit basis';
+  document.getElementById('tblNote').textContent = 'LOC starts at ' + fmtT(base0.locInit) +
+    (r.buf > 0 ? ' · 🟡 Yellow = buffer months, LOC not yet paying down' : '');
+}
+
+function renderBaseCards(r) {
+  const cards = [
+    {l:'Price Savings',          v:fmtS(r.priceSav),   s:'Increase avoided',         bg:'linear-gradient(135deg,#059669,#10b981)'},
+    {l:'Bulk Discount',          v:fmtS(r.bulkSav),    s:'Off invoice cost',          bg:'linear-gradient(135deg,#0284c7,#38bdf8)'},
+    {l:'LOC Interest',           v:fmtT(r.locInt),     s:'Over '+r.tot+' total mo',   bg:'linear-gradient(135deg,#c2410c,#f97316)'},
+    {l:'Price Inc. Gross Profit',v:fmtS(r.priceIncGP), s:'Rev × '+r.marg+'% margin',  bg:'linear-gradient(135deg,#b45309,#f59e0b)'},
+    {l:'Net Benefit (Total)',    v:fmtS(r.netBase),    s:'Over '+r.tot+' mo · no growth', bg:r.netBase>=0?'linear-gradient(135deg,#4338ca,#818cf8)':'linear-gradient(135deg,#dc2626,#f87171)'},
+    {l:'ROI (Total)',            v:r.roiBase.toFixed(2)+'%', s:'Over '+r.tot+' mo',   bg:r.roiBase>=0?'linear-gradient(135deg,#7c3aed,#c084fc)':'linear-gradient(135deg,#dc2626,#f87171)'},
+  ];
+  document.getElementById('baseCards').innerHTML = cards.map(c =>
+    `<div class="card" style="background:${c.bg}">
+      <div class="c-lbl">${c.l}</div>
+      <div class="c-val">${c.v}</div>
+      <div class="c-sub">${c.s}</div>
+    </div>`
+  ).join('');
+}
+
+function renderAnnCards(r) {
+  const cards = [
+    {l:'Net Benefit (Annualized)', v:fmtS(r.annNet),            bg:r.annNet>=0?'linear-gradient(135deg,#0f766e,#2dd4bf)':'linear-gradient(135deg,#dc2626,#f87171)'},
+    {l:'ROI (Annualized)',         v:r.annRoi.toFixed(2)+'%',   bg:r.annRoi>=0?'linear-gradient(135deg,#6d28d9,#a78bfa)':'linear-gradient(135deg,#dc2626,#f87171)'},
+  ];
+  document.getElementById('annCards').innerHTML = cards.map(c =>
+    `<div class="card" style="background:${c.bg};position:relative">
+      <div class="ann-badge">ANNUALIZED</div>
+      <div class="c-lbl">${c.l}</div>
+      <div class="c-val" style="font-size:22px">${c.v}</div>
+      <div class="c-sub" style="font-style:italic;margin-top:8px">
+        Scales actual net benefit to 12-mo equivalent. Savings and LOC costs are fully incurred regardless of horizon — use for comparing deals, not as a standalone figure.
+      </div>
+    </div>`
+  ).join('');
+}
+
+function renderScenCards(r) {
+  const allOpen = expanded.every(v => v);
+  document.getElementById('masterToggle').textContent = (allOpen ? '▲ Hide' : '▼ Show') + ' details for all scenarios';
+  document.getElementById('scenCards').innerHTML = r.scens.map((s, idx) => {
+    const isOpen = expanded[idx];
+    const details = [
+      ['Effective Margin',        r.effMarg.toFixed(1)+'%'],
+      ['Price Inc. Gross Profit', fmtT(r.priceIncGP)],
+      ['Monthly Revenue Lift',    fmtT(s.sim.mRevLift)+'/mo'],
+      ['Growth Gross Profit',     fmtT(s.growthGP)],
+      ['LOC Interest (scenario)', fmtT(s.sim.cumInt)],
+      ['Interest Saved vs Base',  fmtT(s.intSaved)+' saved'],
+    ];
+    return `
+    <div class="scen-card" style="background:${s.bg}">
+      <div class="scen-title">${s.label} — ${s.pct}%/mo</div>
+      <div class="scen-section-lbl">Total (over ${s.sim.tot} mo)</div>
+      <div class="scen-nums">
+        <div><div class="scen-num-lbl">Net Benefit</div><div class="scen-num-val">${fmtS(s.netG)}</div></div>
+        <div><div class="scen-num-lbl">ROI</div><div class="scen-num-val">${s.roiG.toFixed(1)}%</div></div>
+      </div>
+      <div class="scen-ann">
+        <div class="scen-section-lbl">↕ Annualized (÷ ${s.sim.tot} × 12)</div>
+        <div class="scen-nums" style="margin-bottom:0">
+          <div><div class="scen-num-lbl">Net Benefit</div><div class="scen-num-val">${fmtS(s.annNetG)}</div></div>
+          <div><div class="scen-num-lbl">ROI</div><div class="scen-num-val">${s.annRoiG.toFixed(1)}%</div></div>
+        </div>
+        <div class="scen-ann-caveat">Scales actual net benefit to 12-mo equivalent. Costs fully incurred — use for comparing deals.</div>
+      </div>
+      <button class="toggle-btn" onclick="toggleCard(${idx})">
+        <span>${isOpen ? '▲ Hide details' : '▼ Show details'}</span>
+        <span style="opacity:.7;font-size:10px">${details.length} metrics</span>
+      </button>
+      ${isOpen ? `<div class="details-grid">${details.map(([l,v])=>`
+        <div class="detail-item"><div class="detail-lbl">${l}</div><div class="detail-val">${v}</div></div>`
+      ).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function toggleCard(idx) {
+  expanded[idx] = !expanded[idx];
+  renderScenCards(window._lastR);
+  const allOpen = expanded.every(v => v);
+  document.getElementById('masterToggle').textContent = (allOpen ? '▲ Hide' : '▼ Show') + ' details for all scenarios';
+}
+
+function renderChart(r) {
+  const labels = r.rows.map(row => 'M' + row.m);
+  const datasets = [
+    {label:'Base Balance',      data:r.cBal0,              borderColor:'#94a3b8', borderWidth:1.5, borderDash:[5,3], pointRadius:0},
+    {label:'Cum. Interest',     data:r.cInt0,              borderColor:'#f97316', borderWidth:1.5, borderDash:[5,3], pointRadius:0},
+    {label:'Low Balance',       data:r.scens[0].sim.cBal,  borderColor:'#0284c7', borderWidth:2,   pointRadius:0},
+    {label:'Med Balance',       data:r.scens[1].sim.cBal,  borderColor:'#7c3aed', borderWidth:2,   pointRadius:0},
+    {label:'High Balance',      data:r.scens[2].sim.cBal,  borderColor:'#059669', borderWidth:2.5, pointRadius:0},
+  ];
+  if (roiChart) {
+    roiChart.data.labels = labels;
+    roiChart.data.datasets.forEach((ds,i) => { ds.data = datasets[i].data; });
+    roiChart.update();
+  } else {
+    roiChart = new Chart(document.getElementById('roiChart'), {
+      type: 'line',
+      data: { labels, datasets: datasets.map(d => ({...d, tension:.4, fill:false})) },
+      options: {
+        responsive:true,
+        plugins:{legend:{labels:{font:{size:11}}},tooltip:{callbacks:{label:c=>fmtT(c.parsed.y)+' — '+c.dataset.label}}},
+        scales:{
+          x:{ticks:{font:{size:10},color:'#94a3b8'},grid:{color:'#f1f5f9'}},
+          y:{ticks:{font:{size:10},color:'#94a3b8',callback:v=>fmtS(v)},grid:{color:'#f1f5f9'}}
+        }
+      }
+    });
+  }
+}
+
+function renderTable(r) {
+  const {rows, priceSav, bulkSav, priceIncGP, locInt, netBase, roiBase} = r;
+  document.getElementById('tBody').innerHTML = rows.map((row, i) => {
+    const cumNet = priceSav + bulkSav + priceIncGP - row.cumInt;
+    const cls = row.isB ? 'buf-row' : i%2===0 ? '' : 'alt-row';
+    const badgeCls = row.isB ? 'badge" style="background:#fef3c7;color:#92400e' : 'badge" style="background:#dcfce7;color:#166534';
+    return `<tr class="${cls}">
+      <td><strong>Mo ${row.m}</strong></td>
+      <td><span class="${badgeCls}">${row.isB ? 'Buffer' : 'Sell-Thru'}</span></td>
+      <td class="r" style="color:${row.isB?'#94a3b8':'#475569'}">${row.isB ? '—' : fmtT(row.baseSD)}</td>
+      <td class="r" style="color:#475569">${fmtT(row.op)}</td>
+      <td class="r" style="color:#c2410c;font-weight:500">${fmtT(row.int)}</td>
+      <td class="r" style="color:${row.isB?'#94a3b8':'#059669'};font-weight:500">${row.isB ? '—' : fmtT(row.pd)}</td>
+      <td class="r" style="font-weight:600">${fmtT(row.cl)}</td>
+      <td class="r" style="color:#c2410c;font-weight:600">${fmtT(row.cumInt)}</td>
+      <td class="r" style="font-weight:600;color:${cumNet>=0?'#059669':'#dc2626'}">${fmtT(cumNet)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tFoot').innerHTML = `
+    <tr>
+      <td colspan="4">TOTALS</td>
+      <td class="r" style="color:#c2410c">${fmtT(locInt)}</td>
+      <td colspan="4" class="r" style="color:${netBase>=0?'#059669':'#dc2626'}">
+        Base Net Benefit: ${fmtT(netBase)} &nbsp;|&nbsp; Base ROI: ${roiBase.toFixed(2)}%
+      </td>
+    </tr>
+    <tr style="background:#f0fdf4;border-top:1px solid #bbf7d0">
+      <td colspan="2" style="color:#166534">📈 With Growth</td>
+      <td colspan="7" class="r" style="color:#166534;font-size:11px">
+        ${r.scens.map(s=>`${s.label}: ${fmtT(s.netG)} (${s.roiG.toFixed(1)}%)`).join('  ·  ')}
+      </td>
+    </tr>`;
+}
+
+// Initial render
+update();
+</script>
+</body>
+</html>
